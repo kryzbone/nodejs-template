@@ -1,0 +1,801 @@
+openapi: 3.0.0
+info:
+  title: Wheres Poppin API
+  version: 1.0.0
+  description: API for Wheres Poppin.
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://wherespoppin-server.onrender.com/
+    description: Prodcution server
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Unique ID of the user
+        firstName:
+          type: string
+          description: User's first name
+        lastName:
+          type: string
+          description: User's last name
+        phone:
+          type: string
+          description: User's phone number
+        gender:
+          type: string
+          enum: ["male", "female", "other"]
+          description: User's gender
+        dob:
+          type: string
+          format: date
+          description: Date of birth of the user
+        profileImage:
+          $ref: '#/components/schemas/Media'
+          description: Profile image of the user
+
+    Post:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User ID who created the post
+        vendorId:
+          type: string
+          description: Vendor ID (if the post is related to a vendor)
+        caption:
+          type: string
+          description: Caption of the post
+        postType:
+          type: string
+          enum: ["vendor", "user"]
+          description: Type of the post
+        media:
+          $ref: '#/components/schemas/Media'
+          description: Media attached to the post
+        location:
+          $ref: '#/components/schemas/Location'
+          description: Location of the post
+        likedBy:
+          type: array
+          items:
+            type: string
+            description: List of user IDs who liked the post
+
+    Vendor:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User ID of the vendor owner
+        name:
+          type: string
+          description: Vendor name
+        description:
+          type: string
+          description: Vendor description
+        phone:
+          type: string
+          description: Vendor phone number
+        email:
+          type: string
+          description: Vendor email address
+        website:
+          type: string
+          description: Vendor website URL
+        logo:
+          $ref: '#/components/schemas/Media'
+          description: Vendor logo
+        location:
+          $ref: '#/components/schemas/Location'
+          description: Vendor location
+        isActivate:
+          type: boolean
+          default: true
+          description: Whether the vendor is active
+        isverified:
+          type: boolean
+          default: true
+          description: Whether the vendor is verified
+    Pin:
+      type: object
+      properties:
+        postId:
+          type: string
+          description: The ID of the post that is pinned
+        userId:
+          type: string
+          description: The ID of the user who created the pin
+      required:
+        - postId
+
+    Event:
+      type: object
+      properties:
+        vendorId:
+          type: string
+          description: The vendor associated with the event
+        title:
+          type: string
+          description: The title of the event
+        description:
+          type: string
+          description: A brief description of the event
+        date:
+          type: string
+          format: date-time
+          description: The date and time of the event
+        media:
+          $ref: '#/components/schemas/MediaInput'
+          description: Event Media
+        location:
+          $ref: '#/components/schemas/Location'
+          description: Event location
+
+    Story:
+      type: object
+      properties:
+        vendorId:
+          type: string
+          description: The vendor associated with the story
+        caption:
+          type: string
+          description: The caption of the story
+        media:
+          $ref: '#/components/schemas/MediaInput'
+          description: Story Media
+
+    Media:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL of the media file
+        type:
+          type: string
+          description: Type of the media (image, video, etc.)
+        size:
+          type: integer
+          description: Size of the media in bytes
+      example:
+        url: "https://example.com/media/event1.jpg"
+        type: "image"
+
+    MediaInput:
+      type: string
+      format: binary
+    
+
+    Location:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [Point]
+          description: GeoJSON type of the location
+        coordinates:
+          type: array
+          items:
+            type: number
+          description: Coordinates of the location (longitude, latitude)
+      example: 
+        type: "Point"
+        coordinates: [34.052235, -118.243683]
+
+paths:
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created successfully
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get a user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      tags:
+        - Users
+      summary: Update a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted successfully
+
+  /posts:
+    get:
+      tags:
+        - Posts
+      summary: Get all posts
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+    post:
+      tags:
+        - Posts
+      summary: Create a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        '201':
+          description: Post created successfully
+
+  /posts/{postId}:
+    get:
+      tags:
+        - Posts
+      summary: Get a post by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+    patch:
+      tags:
+        - Posts
+      summary: Update a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        '200':
+          description: Post updated successfully
+    delete:
+      tags:
+        - Posts
+      summary: Delete a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Post deleted successfully
+
+  /posts/like/{postId}:
+    get:
+      tags:
+        - Posts
+      summary: Like a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Post liked
+
+  /vendors:
+    get:
+      tags:
+        - Vendors
+      summary: Get all vendors
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vendor'
+    post:
+      tags:
+        - Vendors
+      summary: Create a new vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+      responses:
+        '201':
+          description: Vendor created successfully
+
+  /vendors/{vendorId}:
+    get:
+      tags:
+        - Vendors
+      summary: Get a vendor by ID
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+    patch:
+      tags:
+        - Vendors
+      summary: Update a vendor
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+      responses:
+        '200':
+          description: Vendor updated successfully
+    delete:
+      tags:
+        - Vendors
+      summary: Delete a vendor
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Vendor deleted successfully
+
+  /vendors/nearby:
+    get:
+      tags:
+        - Vendors
+      summary: Search vendors by location
+      description: Retrieve a list of vendors near a given location
+      parameters:
+        - in: query
+          name: lon
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Longitude of the location to search
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Latitude of the location to search
+        # - in: query
+        #   name: radius
+        #   required: false
+        #   schema:
+        #     type: number
+        #     default: 10
+        #     description: The search radius in kilometers (default is 10km)
+      responses:
+        '200':
+          description: List of vendors near the specified location
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vendor'
+
+  /pins:
+    get:
+      tags:
+        - Pins
+      summary: List all pins
+      operationId: listPins
+      responses:
+        200:
+          description: A list of pins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pin'
+
+    post:
+      tags:
+        - Pins
+      summary: Create a new pin
+      operationId: createPin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pin'
+      responses:
+        201:
+          description: Pin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pin'
+
+  /pins/{pinId}:
+    get:
+      tags:
+        - Pins
+      summary: Get a pin by ID
+      operationId: getPin
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the pin to retrieve
+      responses:
+        200:
+          description: Pin retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pin'
+        404:
+          description: Pin not found
+
+    delete:
+      tags:
+        - Pins
+      summary: Delete a pin
+      operationId: deletePin
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the pin to delete
+      responses:
+        204:
+          description: Pin deleted successfully
+        404:
+          description: Pin not found
+
+  /events:
+    post:
+      tags:
+        - Events
+      summary: Create a new event
+      description: Create a new event for a vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '201':
+          description: Event created successfully
+        '400':
+          description: Invalid input
+    get:
+      tags:
+        - Events
+      summary: Get a list of events
+      description: Retrieve a list of events
+      parameters:
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+          description: Filter events by vendor ID
+        - in: query
+          name: radius
+          schema:
+            type: number
+          description: Filter events within a location radius (in km)
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid query parameters
+
+  /events/{eventId}:
+    get:
+      tags:
+        - Events
+      summary: Get an event by ID
+      description: Retrieve an event by its ID
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+
+    patch:
+      tags:
+        - Events
+      summary: Update an event by ID
+      description: Update an event's details
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '200':
+          description: Event updated successfully
+        '404':
+          description: Event not found
+
+    delete:
+      tags:
+        - Events
+      summary: Delete an event by ID
+      description: Delete an event
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Event deleted successfully
+        '404':
+          description: Event not found
+
+  /events/nearby:
+    get:
+      tags:
+        - Events
+      summary: Search events by location
+      description: Retrieve a list of events near a given location
+      parameters:
+        - in: query
+          name: lon
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Longitude of the location to search
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Latitude of the location to search
+        # - in: query
+        #   name: radius
+        #   required: false
+        #   schema:
+        #     type: number
+        #     default: 10
+        #     description: The search radius in kilometers (default is 10km)
+      responses:
+        '200':
+          description: List of events near the specified location
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /stories:
+    post:
+      tags:
+        - Stories
+      summary: Create a new story
+      description: Create a new story for a vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Story'
+      responses:
+        '201':
+          description: Story created successfully
+        '400':
+          description: Invalid input
+    get:
+      tags:
+        - Stories
+      summary: Get a list of stories
+      description: Retrieve a list of stories
+      parameters:
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+          description: Filter stories by vendor ID
+      responses:
+        '200':
+          description: List of stories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Story'
+        '400':
+          description: Invalid query parameters
+
+  /stories/{storyId}:
+    get:
+      tags:
+        - Stories
+      summary: Get a story by ID
+      description: Retrieve a story by its ID
+      parameters:
+        - in: path
+          name: storyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Story details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Story'
+        '404':
+          description: Story not found
+
+    put:
+      tags:
+        - Stories
+      summary: Update a story by ID
+      description: Update a story's details
+      parameters:
+        - in: path
+          name: storyId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Story'
+      responses:
+        '200':
+          description: Story updated successfully
+        '404':
+          description: Story not found
+
+    delete:
+      tags:
+        - Stories
+      summary: Delete a story by ID
+      description: Delete a story
+      parameters:
+        - in: path
+          name: storyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Story deleted successfully
+        '404':
+          description: Story not found
